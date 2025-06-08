@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Мероприятия</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f0f2f5;
+        }
+
+        .navbar {
+            background-color: #ffffff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            padding: 1rem 2rem;
+            display: flex;
+            gap: 1.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .navbar a {
+            color: #333;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .navbar a:hover {
+            background-color: #eaeaea;
+            color: #000;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        h1 {
+            text-align: center;
+            color: #222;
+            margin-bottom: 2rem;
+        }
+
+        .event-block {
+            background: #fff;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+            transition: box-shadow 0.3s ease;
+        }
+
+        .event-block:hover {
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+        }
+
+        .event-block h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #333;
+        }
+
+        .event-block p {
+            margin: 0.5rem 0;
+            color: #555;
+        }
+
+        .event-block h3 {
+            margin-top: 1.5rem;
+            font-size: 1.1rem;
+            color: #555;
+        }
+
+        ul {
+            padding-left: 1.5rem;
+            margin: 0.5rem 0;
+        }
+
+        li {
+            margin-bottom: 0.4rem;
+            color: #444;
+        }
+
+        .no-data {
+            font-style: italic;
+            color: #888;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 2rem 0;
+        }
+
+        .pagination button {
+            margin: 0 0.5rem;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+
+        .pagination button:disabled {
+            background-color: #ccc;
+        }
+
+        .page-info {
+            margin: 0 1rem;
+            font-size: 1rem;
+        }
+
+        .filter-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .filter-container select {
+            margin-right: 1rem;
+            padding: 0.5rem;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        #toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .toast {
+            background-color: #ff4d4f;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            opacity: 0;
+            animation: fadeInOut 4s ease forwards;
+            font-weight: 500;
+            max-width: 300px;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(-10px); }
+            10% { opacity: 1; transform: translateY(0); }
+            90% { opacity: 1; }
+            100% { opacity: 0; transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="navbar">
+        <a href="{{ url_for('events') }}">Мероприятия</a>
+        <a href="{{ url_for('incidents') }}">Инциденты</a>
+        <a href="{{ url_for('security_plans') }}">Планы безопасности</a>
+    </div>
+
+    <div class="container">
+        <div id="toast-container"></div>
+        <h1>Мероприятия</h1>
+
+        <div class="filter-container">
+            <select id="event-type-select">
+                <option value="">Все типы мероприятий</option>
+                <option value="внутреннее">Внутреннее</option>
+                <option value="внешнее">Внешнее</option>
+            </select>
+            <button onclick="filterEvents()">Применить фильтр</button>
+        </div>
+
+        <div class="filter-container">
+            <select id="event-select">
+                <option value="">Все мероприятия</option>
+                {% for event in events %}
+                <option value="{{ event.name }}">{{ event.name }}</option>
+                {% endfor %}
+            </select>
+            <button onclick="filterByName()">Фильтровать по имени</button>
+        </div>
+
+        <div id="event-list">
+            {% for event in events %}
+            <div class="event-block" data-title="{{ event.title }}">
+                <h2>{{ event.name }} ({{ event.title }})</h2>
+                <p><strong>Дата:</strong> {{ event.date }}</p>
+                <p><strong>Описание:</strong> {{ event.description }}</p>
+                <p><strong>Место:</strong> {{ event.location }}</p>
+
+                <h3>Инциденты</h3>
+                {% if event.incidents %}
+                <ul>
+                    {% for incident in event.incidents %}
+                    <li><strong>{{ incident.name }}</strong> — {{ incident.description }} ({{ incident.severity }}) [{{ incident.timestamp }}]</li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="no-data">Нет инцидентов.</p>
+                {% endif %}
+
+                <h3>Планы безопасности</h3>
+                {% if event.security_plans %}
+                <ul>
+                    {% for plan in event.security_plans %}
+                    <li><strong>{{ plan.name }}</strong>: {{ plan.description }}</li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="no-data">Нет планов безопасности.</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="pagination">
+            <button id="prev" onclick="changePage(-1)">Назад</button>
+            <span class="page-info" id="page-info"></span>
+            <button id="next" onclick="changePage(1)">Вперед</button>
+        </div>
+    </div>
+
+    <script>
+        const ACCESS_TOKEN_EXPIRE_TIME = 10 * 60 * 1000;  // 10 минут
+        const REFRESH_INTERVAL = ACCESS_TOKEN_EXPIRE_TIME - 60000;  // обновлять через 9 минут
+    
+        let currentPage = 1;
+        const itemsPerPage = 2;
+        let filteredEvents = [];
+    
+        function filterEvents() {
+            const selectedEventType = document.getElementById('event-type-select').value.toLowerCase();
+            const allEvents = Array.from(document.querySelectorAll('.event-block'));
+
+            console.log("Фильтр по типу:", selectedEventType);
+
+            filteredEvents = allEvents.filter(eventBlock => {
+                const title = eventBlock.getAttribute('data-title').toLowerCase();
+                const matchesType = selectedEventType === "" || title.includes(selectedEventType);
+                return matchesType;
+            });
+
+            console.log("Отфильтрованные события:", filteredEvents);
+            
+            currentPage = 1;
+            displayEvents();
+        }
+
+        function filterByName() {
+            const selectedEvent = document.getElementById('event-select').value.toLowerCase();
+            const allEvents = Array.from(document.querySelectorAll('.event-block'));
+
+            console.log("Фильтр по названию:", selectedEvent);
+
+            filteredEvents = allEvents.filter(eventBlock => {
+                const title = eventBlock.querySelector('h2').textContent.toLowerCase();
+                const matchesName = selectedEvent === "" || title.includes(selectedEvent);
+                return matchesName;
+            });
+
+            console.log("Отфильтрованные события по имени:", filteredEvents);
+            
+            currentPage = 1;
+            displayEvents();
+        }
+    
+        function displayEvents() {
+            const allEvents = document.querySelectorAll('.event-block');
+            allEvents.forEach(event => event.style.display = 'none');
+
+            if (filteredEvents.length === 0) {
+                filteredEvents = Array.from(allEvents);
+            }
+
+            const totalItems = filteredEvents.length;
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+
+            filteredEvents.slice(start, end).forEach(event => event.style.display = 'block');
+
+            document.getElementById('prev').disabled = currentPage === 1;
+            document.getElementById('next').disabled = currentPage === totalPages || totalPages === 0;
+
+            document.getElementById('page-info').textContent = totalPages > 0
+                ? `Страница ${currentPage} из ${totalPages}`
+                : 'Нет мероприятий';
+        }
+
+        function changePage(direction) {
+            const totalItems = filteredEvents.length;
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            currentPage += direction;
+
+            // Убедимся, что текущая страница не выходит за пределы
+            if (currentPage < 1) {
+                currentPage = 1;
+            } else if (currentPage > totalPages) {
+                currentPage = totalPages;
+            }
+
+            displayEvents();
+        }
+    
+        function showToast(message) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            container.appendChild(toast);
+    
+            setTimeout(() => {
+                toast.remove();
+            }, 4000);
+        }
+    
+        async function refreshAccessToken() {
+            try {
+                const res = await fetch('/refresh', {
+                    method: 'POST',
+                    credentials: 'include'  // обязательно, чтобы куки ушли
+                });
+
+                const data = await res.json();
+
+                if (res.status === 200) {
+                    localStorage.setItem('jwt_token', data.access_token);
+                    console.log('✅ Access token обновлён заранее');
+                } else if (res.status === 401) {
+                    if (data.msg === 'Refresh token expired') {
+                        showToast("⏰ Ваша сессия истекла. Пожалуйста, войдите снова.");
+                    } else if (data.msg === 'Invalid refresh token') {
+                        showToast("❗ Недействительный токен. Выполните вход заново.");
+                    } else {
+                        showToast("⚠️ Ошибка авторизации: " + data.msg);
+                    }
+                    setTimeout(() => window.location.href = '/login', 2500);
+                } else if (res.status === 500) {
+                    showToast("🚨 Внутренняя ошибка сервера: " + (data.error || 'Неизвестная ошибка'));
+                } else {
+                    showToast("⚠️ Неожиданная ошибка при обновлении токена.");
+                }
+            } catch (err) {
+                console.error('❌ Ошибка сети:', err);
+                showToast("❌ Ошибка соединения с сервером.");
+                setTimeout(() => window.location.href = '/login', 2500);
+            }
+        }
+
+        // Запускаем обновление сразу и потом по интервалу
+        refreshAccessToken();
+        setInterval(refreshAccessToken, REFRESH_INTERVAL);
+    </script>
+    
+</body>
+</html>
