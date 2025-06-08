@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Планы безопасности</title>
+
+    <!-- Стили -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: #333;
+        }
+
+        .container {
+            width: 80%;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        .flash-message {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #28a745;
+        }
+
+        .card {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin: 20px 0;
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 12px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .table-wrapper {
+            margin-top: 30px;
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            text-align: left;
+            padding: 12px;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        td a {
+            color: #007bff;
+            text-decoration: none;
+            padding: 5px 10px;
+        }
+
+        td a:hover {
+            background-color: #f1f1f1;
+            border-radius: 5px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .back-btn {
+            background-color: #007bff;
+            border-radius: 8px;
+            padding: 12px 20px;
+            color: white;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 20px;
+        }
+
+        .back-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .related-events {
+            margin-top: 10px;
+            font-style: italic;
+            color: #555;
+        }
+
+        select[multiple] {
+            height: 150px;
+            background-color: #fff;
+            box-sizing: border-box;
+        }
+
+        select[multiple] option {
+            padding: 8px;
+        }
+
+        /* Toast уведомление */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #ff4444;
+            color: #fff;
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            z-index: 9999;
+            font-size: 16px;
+            display: none;
+        }
+
+        .toast.show {
+            display: block;
+            animation: fadeInOut 4s ease-in-out;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(-20px); }
+            10% { opacity: 1; transform: translateY(0); }
+            90% { opacity: 1; }
+            100% { opacity: 0; transform: translateY(-20px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Планы безопасности</h1>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-message">
+                    <p>{{ messages[0] }}</p>
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="add-button-wrapper">
+            <button onclick="document.getElementById('add-plan-card').style.display='block'">
+                Добавить план безопасности
+            </button>
+        </div>
+
+        <div id="add-plan-card" class="card" style="display: none;">
+            <form method="POST" action="{{ url_for('security_plans') }}">
+                <input type="text" name="plan_name" placeholder="Название плана" required>
+                <textarea name="plan_description" placeholder="Описание плана" required></textarea>
+
+                <div class="form-group">
+                    <label for="event_ids">Выберите мероприятия для привязки (можно выбрать несколько):</label>
+                    <select name="event_ids" id="event_ids" multiple required>
+                        {% for event in events %}
+                            <option value="{{ event[0] }}">{{ event[1] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <button type="submit">Добавить план безопасности</button>
+            </form>
+        </div>
+
+        <a href="index" class="back-btn">На главную</a>
+
+        <div class="table-wrapper">
+            <h2>Существующие планы</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Название плана</th>
+                        <th>Описание</th>
+                        <th>Мероприятия</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for plan in plans %}
+                        <tr>
+                            <td>{{ plan[1] }}</td>
+                            <td>{{ plan[2] }}</td>
+                            <td class="related-events">
+                                {% if plan[3] %}
+                                    <span>{{ plan[3] }}</span>
+                                {% else %}
+                                    <span>Не выбрано мероприятие для привязки</span>
+                                {% endif %}
+                            </td>
+                            <td class="actions">
+                                <a href="{{ url_for('edit_security_plan', plan_id=plan[0]) }}">Редактировать</a>
+                                <form action="{{ url_for('delete_security_plan', plan_id=plan[0]) }}" method="POST" onsubmit="return confirm('Вы уверены, что хотите удалить этот план?');" style="display:inline;">
+                                    <button type="submit">Удалить</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
+
+    <!-- JS -->
+    <script>
+        const ACCESS_TOKEN_EXPIRE_TIME = 10 * 60 * 1000;  // 10 мин
+        const REFRESH_INTERVAL = ACCESS_TOKEN_EXPIRE_TIME - 60000;  // обновление за 1 мин до истечения
+
+        function showToast(message, isError = true) {
+            const toast = document.getElementById('toast');
+            toast.style.backgroundColor = isError ? '#ff4444' : '#28a745';
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 4000);
+        }
+
+        async function safeFetch(url, options = {}) {
+            const token = localStorage.getItem('jwt_token');
+            const headers = {
+                'Content-Type': 'application/json',
+                ...(token && { 'Authorization': `Bearer ${token}` }),
+                ...(options.headers || {})
+            };
+
+            try {
+                const res = await fetch(url, {
+                    ...options,
+                    headers,
+                    credentials: 'include'
+                });
+
+                if (res.status === 401) {
+                    showToast("🔐 Не авторизован (401). Пожалуйста, войдите заново.");
+                    setTimeout(() => window.location.href = '/login', 2500);
+                } else if (res.status === 403) {
+                    showToast("🚫 Доступ запрещен (403).");
+                } else if (!res.ok) {
+                    const errText = await res.text();
+                    showToast(`⚠️ Ошибка: ${res.status} - ${errText}`);
+                }
+
+                return res;
+            } catch (err) {
+                console.error("Ошибка запроса:", err);
+                showToast("❌ Сетевая ошибка или сервер недоступен.");
+                throw err;
+            }
+        }
+
+        async function refreshAccessToken() {
+            try {
+                const res = await safeFetch('/refresh', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    localStorage.setItem('jwt_token', data.access_token);
+                    console.log('✅ Токен обновлён');
+                }
+            } catch (e) {
+                // Ошибка уже показана toast'ом
+            }
+        }
+
+        refreshAccessToken();
+        setInterval(refreshAccessToken, REFRESH_INTERVAL);
+    </script>
+</body>
+</html>
