@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редактировать план безопасности</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f7f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-top: 30px;
+        }
+
+        .container {
+            width: 60%;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        .flash-message {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #28a745;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 12px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .back-btn {
+            background-color: #007bff;
+            padding: 12px 20px;
+            color: white;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 20px;
+            border-radius: 8px;
+        }
+
+        .back-btn:hover {
+            background-color: #0056b3;
+        }
+
+        select[multiple] {
+            width: 100%;
+            height: 150px;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+            background-color: #fff;
+            color: #333;
+            box-sizing: border-box;
+        }
+
+        .related-events {
+            margin-top: 10px;
+            font-style: italic;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Редактировать план безопасности</h1>
+
+        <!-- Сообщение об успешном обновлении -->
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-message">
+                    <p>{{ messages[0] }}</p>
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Форма для редактирования плана безопасности -->
+        <form method="POST" action="{{ url_for('edit_security_plan', plan_id=plan[0]) }}">
+            <div class="form-group">
+                <input type="text" name="plan_name" value="{{ plan[1] }}" required placeholder="Название плана">
+            </div>
+            <div class="form-group">
+                <textarea name="plan_description" required placeholder="Описание плана">{{ plan[2] }}</textarea>
+            </div>
+
+            <!-- Выбор мероприятий для привязки -->
+            <div class="form-group">
+                <label for="event_ids">Выберите мероприятия для привязки:</label>
+                <select name="event_ids" id="event_ids" multiple>
+                    {% for event in events %}
+                        <option value="{{ event[0] }}" 
+                            {% if event in selected_events %}selected{% endif %}>
+                            {{ event[1] }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit">Сохранить изменения</button>
+        </form>
+
+        <!-- Кнопка для возврата на список планов -->
+        <a href="{{ url_for('security_plans') }}" class="back-btn">Назад к списку планов</a>
+    </div>
+    <script>
+       const ACCESS_TOKEN_EXPIRE_TIME = 10 * 60 * 1000;  // 10 минут
+const REFRESH_INTERVAL = ACCESS_TOKEN_EXPIRE_TIME - 60000;  // обновлять через 9 минут
+
+      
+      async function refreshAccessToken() {
+    try {
+        const res = await fetch('/refresh', {
+    method: 'POST',
+    credentials: 'include'  // обязательно, чтобы куки ушли
+});
+
+
+        if (res.status === 401) {
+            // Если токен истек, перенаправляем на страницу входа
+            showToast("⛔ Сессия истекла. Пожалуйста, войдите снова.");
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 2000);
+        } else if (res.status === 403) {
+            // Если доступ запрещен
+            showToast("🚫 Доступ запрещён. У вас нет прав.");
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 2000);
+        } else if (!res.ok) {
+            // Если произошла другая ошибка
+            showToast("⚠️ Ошибка при обновлении токена.");
+        } else {
+            const data = await res.json();
+            localStorage.setItem('jwt_token', data.access_token); // Сохраняем новый токен
+            console.log('✅ Access token обновлён заранее');
+        }
+    } catch (err) {
+        console.error('❌ Ошибка сети:', err);
+        showToast("❌ Ошибка соединения с сервером.");
+        setTimeout(() => {
+            window.location.href = '/login';
+        }, 2000);
+    }
+}
+
+      
+      // Запускаем обновление сразу и потом по интервалу
+      refreshAccessToken();
+      setInterval(refreshAccessToken, REFRESH_INTERVAL);
+      
+      </script>
+</body>
+</html>
