@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редактировать мероприятие</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        h1 {
+            text-align: center;
+            margin-top: 30px;
+            color: #000000;
+        }
+
+        form {
+            width: 300px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #34495e;
+        }
+
+        input[type="text"], input[type="date"], textarea, select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        button {
+            padding: 10px 15px;
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        .back-button {
+            margin-top: 20px;
+            padding: 10px 15px;
+            background-color: #e74c3c;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        .back-button:hover {
+            background-color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <h1>Редактирование мероприятия</h1>
+
+    <form id="editEventForm">
+        <label for="title">Тип мероприятия:</label>
+        <select name="title" id="title" required>
+            <option value="внутреннее" {% if event[1] == 'внутреннее' %}selected{% endif %}>Внутреннее</option>
+            <option value="внешнее" {% if event[1] == 'внешнее' %}selected{% endif %}>Внешнее</option>
+        </select><br><br>
+    
+        <label for="date">Дата:</label>
+        <input type="date" name="date" id="date" value="{{ event[2] }}" required><br><br>
+    
+        <label for="description">Описание:</label>
+        <textarea name="description" id="description" required>{{ event[3] }}</textarea><br><br>
+    
+        <label for="name">Имя мероприятия:</label>
+        <input type="text" name="name" id="name" value="{{ event[4] }}" required><br><br>
+    
+        <label for="location">Место проведения:</label>
+        <input type="text" name="location" id="location" value="{{ event[5] }}" required><br><br>
+    
+        <button type="submit">Сохранить изменения</button>
+    </form>
+
+    <button class="back-button" onclick="goBack()">Вернуться к мероприятиям</button>
+
+    <script>
+        const ACCESS_TOKEN_EXPIRE_TIME = 10 * 60 * 1000;  // 10 минут
+        const REFRESH_INTERVAL = ACCESS_TOKEN_EXPIRE_TIME - 60000;  // обновлять через 9 минут
+
+        async function refreshAccessToken() {
+            try {
+                const res = await fetch('/refresh', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+
+                if (res.status === 401 || res.status === 403) {
+                    window.location.href = '/login';
+                } else if (!res.ok) {
+                    console.error("Ошибка при обновлении токена.");
+                } else {
+                    const data = await res.json();
+                    localStorage.setItem('jwt_token', data.access_token);
+                    console.log('✅ Access token обновлён заранее');
+                }
+            } catch (err) {
+                console.error('❌ Ошибка сети:', err);
+                window.location.href = '/login';
+            }
+        }
+
+        refreshAccessToken();
+        setInterval(refreshAccessToken, REFRESH_INTERVAL);
+
+        document.getElementById('editEventForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData.entries());
+            
+            try {
+                console.log("Отправка данных на сервер:", data); // Логируем данные перед отправкой
+                const response = await fetch(`/events/edit/{{ event[0] }}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + localStorage.getItem('jwt_token')
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                console.log("Статус ответа:", response.status); // Логируем статус ответа
+                if (response.ok) {
+                    alert("Изменения успешно сохранены!"); // Уведомление об успешном сохранении
+                } else {
+                    const errorMessage = await response.text();
+                    console.error("Ошибка при обновлении мероприятия:", errorMessage);
+                }
+            } catch (error) {
+                console.error('Ошибка сети:', error);
+            }
+        });
+
+        function goBack() {
+            window.location.href = '/events'; // Возвращаем на страницу мероприятий
+        }
+    </script>
+</body>
+</html>
